@@ -4,7 +4,7 @@
 
 ## Установка
 
-1) `composer require proklung/collection-extender-bundle`
+1) `composer require proklung/request-validator-bundle`
 
 ## Использование
 
