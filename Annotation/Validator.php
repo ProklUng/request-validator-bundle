@@ -2,6 +2,7 @@
 
 namespace Prokl\RequestValidatorBundle\Annotation;
 
+use RuntimeException;
 use Symfony\Component\Validator\Constraint;
 
 /**
@@ -37,69 +38,87 @@ class Validator
      */
     public function __construct(array $values)
     {
-        foreach ($values as $k => $v) {
-            if (!method_exists($this, $name = 'set'.$k)) {
-                throw new \RuntimeException(sprintf('Unknown key "%s" for annotation "@%s".', $k, static::class));
+        /**
+         * @var string $key
+         * @var mixed  $value
+         */
+        foreach ($values as $key => $value) {
+            if (!method_exists($this, $name = 'set' . $key)) {
+                throw new RuntimeException(sprintf('Unknown key "%s" for annotation "@%s".', $key, static::class));
             }
 
-            $this->$name($v);
+            $this->$name($value);
         }
     }
 
-    public function getAliasName()
+    /**
+     * @return string
+     */
+    public function getAliasName() : string
     {
         return 'request_validator';
     }
 
-    public function allowArray()
+    /**
+     * @return boolean
+     */
+    public function allowArray() : bool
     {
         return true;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getName()
+    public function getName() : string
     {
         return $this->name;
     }
 
     /**
      * @param mixed $name
+     *
+     * @return void
      */
-    public function setName($name)
+    public function setName($name) : void
     {
-        $this->name = $name;
+        $this->name = (string)$name;
     }
 
     /**
      * @return array|Constraint[]
      */
-    public function getConstraints()
+    public function getConstraints() : array
     {
         return $this->constraints;
     }
 
     /**
      * @param array $constraints
+     *
+     * @return void
      */
-    public function setConstraints($constraints)
+    public function setConstraints(array $constraints) : void
     {
         $this->constraints = $constraints;
     }
 
     /**
-     * @param $key
+     * @param string|integer $key
+     *
+     * @return void
      */
-    public function removeConstraint($key)
+    public function removeConstraint($key) : void
     {
         unset($this->constraints[$key]);
     }
 
     /**
      * @param Constraint $constraint
+     *
+     * @return void
      */
-    public function addConstraint(Constraint $constraint)
+    public function addConstraint(Constraint $constraint) : void
     {
         $this->constraints[] = $constraint;
     }
@@ -114,8 +133,10 @@ class Validator
 
     /**
      * @param mixed $default
+     *
+     * @return void
      */
-    public function setDefault($default)
+    public function setDefault($default) : void
     {
         $this->default = $default;
     }
@@ -123,7 +144,7 @@ class Validator
     /**
      * @return boolean
      */
-    public function isRequired()
+    public function isRequired() : bool
     {
         return $this->required;
     }
@@ -131,15 +152,17 @@ class Validator
     /**
      * @return boolean
      */
-    public function isOptional()
+    public function isOptional() : bool
     {
         return !$this->required;
     }
 
     /**
      * @param boolean $required
+     *
+     * @return void
      */
-    public function setRequired($required)
+    public function setRequired($required) : void
     {
         $this->required = $required;
     }

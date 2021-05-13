@@ -7,6 +7,7 @@ use Prokl\RequestValidatorBundle\Annotation\Validator;
 use Prokl\RequestValidatorBundle\Validator\RequestValidator;
 use Prokl\RequestValidatorBundle\Validator\RequestValidatorInterface;
 use ReflectionException;
+use ReflectionObject;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -53,21 +54,26 @@ final class ValidatorAnnotationListener
 
         $request = $event->getRequest();
 
-        $object = new \ReflectionObject($controller[0]);
+        $object = new ReflectionObject($controller[0]);
         $method = $object->getMethod($controller[1]);
 
         $annotations = $this->reader->getMethodAnnotations($method);
 
         // Filter out Validator annotations
-        $annotations = array_filter($annotations, static function ($annotation) {
-            return (bool) ($annotation instanceof Validator);
-        });
+        $annotations = array_filter($annotations,
+            /** @param object $annotation
+             *  @return boolean
+             */
+            static function ($annotation): bool {
+                return $annotation instanceof Validator;
+            });
 
         $validators = [];
-        array_walk($annotations, static function ($value) use (&$validators) {
-            /* @var Validator $value */
-            $validators[$value->getName()] = $value;
-        });
+        array_walk($annotations,
+            static function (Validator $value) use (&$validators) : void {
+                /* @var Validator $value */
+                $validators[$value->getName()] = $value;
+            });
 
         $request->attributes->set('requestValidator', $this->createRequestValidator($request, $validators));
     }

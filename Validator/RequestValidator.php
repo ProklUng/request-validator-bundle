@@ -6,7 +6,9 @@ use Prokl\RequestValidatorBundle\Annotation\Validator;
 use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -54,6 +56,7 @@ class RequestValidator implements RequestValidatorInterface
         $allFields = $this->getAll(false, false);
 
         foreach ($this->annotations as $annotation) {
+            /** @var mixed $requestValue */
             $requestValue = $this->getParameterBag()->get($annotation->getName());
 
             // Add NotNull for required empty params
@@ -64,11 +67,15 @@ class RequestValidator implements RequestValidatorInterface
             }
 
             // Adjust Symfony constraints to request validator
+            /**
+             * @var string|integer $key
+             * @var Constraint $constraint
+             */
             foreach ($annotation->getConstraints() as $key => $constraint) {
                 // Conditional constraints
                 if (isset($constraint->payload['when'])) {
                     $language = new ExpressionLanguage();
-                    $condition = $language->evaluate($constraint->payload['when'], $allFields);
+                    $condition = $language->evaluate((string)$constraint->payload['when'], $allFields);
 
                     if (!$condition) {
                         $annotation->removeConstraint($key);
@@ -94,7 +101,7 @@ class RequestValidator implements RequestValidatorInterface
                         continue;
                     }
 
-                    $errors->set($annotation->getName(), $error);
+                    $errors->add($error);
 
                     continue 2;
                 }
@@ -107,6 +114,11 @@ class RequestValidator implements RequestValidatorInterface
 
             // Validate the value with all the constraints defined
             $violationList = $this->validator->validate($requestValue, $annotation->getConstraints());
+
+            /**
+             * @var integer $key
+             * @var ConstraintViolationInterface $violation
+             */
             foreach ($violationList as $key => $violation) {
                 $errors->set($key, $violation);
             }
@@ -118,7 +130,7 @@ class RequestValidator implements RequestValidatorInterface
     /**
      * @inheritDoc
      */
-    public function get($path)
+    public function get(string $path)
     {
         $annotation = $this->getAnnotation($path);
 
@@ -130,8 +142,10 @@ class RequestValidator implements RequestValidatorInterface
             return $annotation->getDefault();
         }
 
+        /** @var mixed $requestValue */
         $requestValue = $this->getParameterBag()->get($path);
 
+        /** @var Constraint $constraint */
         foreach ($annotation->getConstraints() as $constraint) {
             if ($constraint instanceof Assert\Type && 'boolean' === $constraint->type && $this->isBoolean($requestValue)) {
                 return filter_var($requestValue, FILTER_VALIDATE_BOOLEAN);
@@ -159,6 +173,7 @@ class RequestValidator implements RequestValidatorInterface
                 }
             }
 
+            /** @var mixed $requestValue */
             $requestValue = $this->get($annotation->getName());
 
             if ($validate) {
